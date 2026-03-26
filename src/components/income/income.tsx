@@ -1,0 +1,43 @@
+"use client"
+
+// React component'da ishlatish
+import { useEffect, useState } from 'react';
+import { getIncomes } from '@/lib/api/income/get-incomes';
+
+export default function Incomes() {
+    const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchUserInfo = async () => {
+            try {
+                const data = await getIncomes();
+                if (data.success) {
+                    setUser(data.incomes);
+                }
+            } catch (err: any) {
+                setError(err?.toJSON ? err.toJSON() : err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserInfo();
+    }, []);
+
+    if (loading) return <p>Yuklanmoqda...</p>;
+    if (error) return <pre>{JSON.stringify(error, null, 2)}</pre>;
+
+
+    return (
+        <div>
+            <h1>{user?.firstName}</h1>
+            <p>ID: {user?.id}</p>
+            <h2>sss</h2>
+            <pre>
+                {JSON.stringify(user, null, 2)}
+            </pre>
+        </div>
+    );
+}
