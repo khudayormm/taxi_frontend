@@ -106,7 +106,6 @@ export default function RootLayout({
                 clientId={process.env.OPENPANEL_CLIENT_ID!}
                 trackScreenViews={true}
               />
-
               <TemplateLayout>
                 {children}
               </TemplateLayout>

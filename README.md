@@ -422,4 +422,7 @@ const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
     )
 
 }
+
 # taxi_frontend
+
+## cloudflared tunnel --url http://localhost:3000 --http-host-header localhost
