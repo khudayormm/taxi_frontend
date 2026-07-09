@@ -84,12 +84,14 @@ export default function TaxisViewMap() {
 
     useEffect(() => { locate(); }, [locate]);
 
-    // Faol taksilarni har 15 sekundda yangilab turish
+    // Faol taksilarni tez-tez yangilab turish (faollikdan chiqqan taksi
+    // ~5 soniyada xaritadan yo'qoladi). Sahifa qayta fokuslanganda darhol.
     useEffect(() => {
+        let stopped = false;
         const fetchDrivers = async () => {
             try {
                 const response = await api.post('/user/active-drivers');
-                if (response?.data?.success) {
+                if (!stopped && response?.data?.success) {
                     setDrivers(response.data.data);
                 }
             } catch (error) {
@@ -98,8 +100,19 @@ export default function TaxisViewMap() {
         };
 
         fetchDrivers();
-        const interval = setInterval(fetchDrivers, 15000);
-        return () => clearInterval(interval);
+        const interval = setInterval(fetchDrivers, 5000);
+
+        // Mini app qayta ochilganda/fokusga qaytganda darhol yangilash
+        const onVisible = () => {
+            if (document.visibilityState === "visible") fetchDrivers();
+        };
+        document.addEventListener("visibilitychange", onVisible);
+
+        return () => {
+            stopped = true;
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", onVisible);
+        };
     }, []);
 
     // Taksini tanlash: xaritani marker yoniga suradi va kartani ochadi

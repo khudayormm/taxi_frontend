@@ -100,7 +100,7 @@ export default function DriverMap({ user }: { user: TUser }) {
     useEffect(() => {
         if (!isLocationReady) return;
         fetchActivePassengers();
-        const interval = setInterval(fetchActivePassengers, 15000);
+        const interval = setInterval(fetchActivePassengers, 5000);
         return () => clearInterval(interval);
     }, [isLocationReady]);
 
