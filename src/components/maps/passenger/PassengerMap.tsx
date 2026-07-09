@@ -24,30 +24,35 @@ const MAP_BOUNDS = [[40.5000, 59.0000], [42.5000, 62.5000],
 ];
 
 // SVG MARKERLAR
-const PICKUP_MARKER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+// base64 ishlatiladi: encodeURIComponent qavslarni () kodlamaydi va SVG ichidagi
+// url(#...) Yandex xaritasining CSS url(...) sini buzib, marker ko'rinmay qolardi
+const toDataUri = (svg: string) =>
+    `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+
+const PICKUP_MARKER = toDataUri(`
   <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
     <defs><filter id="pulse-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/></filter></defs>
     <circle cx="40" cy="40" r="30" fill="#3B82F6" opacity="0"><animate attributeName="r" from="14" to="34" dur="1.5s" begin="0s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.5" to="0" dur="1.5s" begin="0s" repeatCount="indefinite"/></circle>
     <circle cx="40" cy="40" r="14" fill="white" filter="url(#pulse-shadow)" />
     <circle cx="40" cy="40" r="7" fill="#1D4ED8" />
   </svg>
-`)}`;
+`);
 
-const TAXI_MARKER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+const TAXI_MARKER = toDataUri(`
   <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
     <defs><filter id="taxi-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.35"/></filter></defs>
     <circle cx="22" cy="22" r="16" fill="#ffcc00" stroke="white" stroke-width="3" filter="url(#taxi-shadow)"/>
     <text x="22" y="28" font-size="16" text-anchor="middle">🚕</text>
   </svg>
-`)}`;
+`);
 
-const DESTINATION_MARKER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+const DESTINATION_MARKER = toDataUri(`
   <svg width="40" height="48" viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg">
     <defs><filter id="pin-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/></filter></defs>
     <path d="M20 2C9.506 2 1 10.506 1 21C1 34.5 20 46 20 46C20 46 39 34.5 39 21C39 10.506 30.494 2 20 2Z" fill="#EF4444" filter="url(#pin-shadow)"/>
     <circle cx="20" cy="18" r="6" fill="white"/>
   </svg>
-`)}`;
+`);
 
 // Yordamchi: Turf.js orqali poligon ichidami tekshirish
 const isPointInGeoJSON = (lat: number, lng: number, geojson: any) => {
