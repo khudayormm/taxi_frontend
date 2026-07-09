@@ -199,7 +199,7 @@ export default function PassengerMap() {
         if (pickup && !destination && activeCity && mapRef.current) {
             const targetCenter = activeCity === "urganch" ? BOGOT_CENTER : URGANCH_CENTER;
             setTimeout(() => {
-                mapRef.current.setCenter(targetCenter, 14, {
+                mapRef.current.setCenter(targetCenter, 12, {
                     duration: 1200,
                     timingFunction: "ease-in-out"
                 });
@@ -278,7 +278,7 @@ export default function PassengerMap() {
 
         if (pickup && activeCity && mapRef.current) {
             const targetCenter = activeCity === "urganch" ? BOGOT_CENTER : URGANCH_CENTER;
-            mapRef.current.setCenter(targetCenter, 14, { duration: 800 });
+            mapRef.current.setCenter(targetCenter, 12, { duration: 800 });
         }
     };
 

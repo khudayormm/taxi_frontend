@@ -85,7 +85,7 @@ export default function DriverMap() {
                     </div>
                 </div>
                 <Map
-                    state={{ center: location, zoom: 14 }}
+                    state={{ center: location, zoom: 12 }}
                     width="100%"
                     height="100%"
                     modules={["control.ZoomControl", "control.TrafficControl"]}
