@@ -18,8 +18,9 @@ interface Driver {
 const URGANCH_CENTER: [number, number] = [41.5502, 60.6316];
 const BOGOT_CENTER: [number, number] = [41.3542, 60.8161];
 
-// Xarita qamrovi (Toshkentga ketib qolmasligi uchun)
-const MAP_BOUNDS = [[41.2000, 60.4000], [41.7000, 61.0000],
+// Xarita qamrovi (Toshkentga ketib qolmasligi uchun).
+// Zoom 7 gacha ochilishi uchun keng olingan, aks holda Yandex zoomni o'zi ko'tarib yuboradi
+const MAP_BOUNDS = [[40.5000, 59.0000], [42.5000, 62.5000],
 ];
 
 // SVG MARKERLAR
@@ -364,7 +365,7 @@ export default function PassengerMap() {
 
                 {/* --- XARITA --- */}
                 <Map
-                    state={{ center: mapCenter, zoom: 8 }}
+                    state={{ center: mapCenter, zoom: 7, controls: [] }}
                     width="100%"
                     height="100%"
                     modules={["multiRouter.MultiRoute", "coordSystem.geo"]}
