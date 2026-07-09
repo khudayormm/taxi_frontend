@@ -65,7 +65,12 @@ export default function TemplateLayout({ children }: { children: React.ReactNode
 
                     <AlertTitle>Xatolik</AlertTitle>
 
-                    <AlertDescription>{meError}</AlertDescription>
+                    <AlertDescription>
+                        {meError}
+                        <span className="mt-2 block font-semibold">
+                            Iltimos, botga qaytib /start buyrug'ini bosing va qaytadan urinib ko'ring.
+                        </span>
+                    </AlertDescription>
                 </Alert>
             </main>
         );
