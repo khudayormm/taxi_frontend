@@ -2,35 +2,21 @@
 
 import { TUser } from '@/types/user-info'
 import dynamic from 'next/dynamic'
-import React, { useEffect, useMemo, useState } from 'react'
-import PassengerPage from '../pages/passenger'
+import React, { useMemo } from 'react'
 
-// Botdagi ikki tugma ikki xil rejim ochadi:
-//   ?mode=order — borish manzilini belgilash (buyurtma oqimi)
-//   ?mode=taxis — joriy taksilarni xaritadan ko'rish (faqat ko'rish)
+// Yo'lovchi xaritada faol taksilarni va ularning bo'sh joylarini ko'radi.
+// Manzil telefon orqali kelishiladi — xaritadan tanlash yo'q.
 const PassengerLayout = ({ user }: { user: TUser }) => {
-    const [mode, setMode] = useState<string | null>(null)
-
-    useEffect(() => {
-        setMode(new URLSearchParams(window.location.search).get("mode") ?? "order")
-    }, [])
-
     const TaxisView = useMemo(() => dynamic(
         () => import("@/components/maps/passenger/TaxisViewMap"),
-        { loading: () => <p>Xarita yuklanmoqda...</p>, ssr: false }
+        { loading: () => <p className="p-4">Xarita yuklanmoqda...</p>, ssr: false }
     ), [])
 
-    if (mode === null) return null
-
-    if (mode === "taxis") {
-        return (
-            <main className="h-screen w-full">
-                <TaxisView />
-            </main>
-        )
-    }
-
-    return <PassengerPage user={user} />
+    return (
+        <main className="h-screen w-full">
+            <TaxisView />
+        </main>
+    )
 }
 
 export default PassengerLayout

@@ -1,6 +1,6 @@
 "use client";
 
-import { YMaps, Map, Placemark, ZoomControl, Clusterer } from "@pbe/react-yandex-maps";
+import { YMaps, Map, Placemark, ZoomControl } from "@pbe/react-yandex-maps";
 import { useState, useEffect, useCallback } from "react";
 import { Navigation } from "lucide-react";
 import api from "@/lib/api/api-config/api";
@@ -11,6 +11,9 @@ interface Driver {
     phone: string | null;
     lastLat: number;
     lastLng: number;
+    seatsTotal: number;
+    seatsFilled: number;
+    seatsFree: number;
     rating: number | null;
     ratingCount: number;
 }
@@ -20,12 +23,20 @@ const URGANCH_CENTER: [number, number] = [41.5502, 60.6316];
 const toDataUri = (svg: string) =>
     `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 
-const TAXI_MARKER = toDataUri(`
-  <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="22" cy="22" r="16" fill="#ffcc00" stroke="white" stroke-width="3"/>
-    <text x="22" y="28" font-size="16" text-anchor="middle">🚕</text>
-  </svg>
-`);
+// Taksi markeri: tepasida bo'sh joy sonini ko'rsatuvchi badge.
+// To'lgan (0 joy) = yashil "tez ketadi", 1-2 joy = to'q sariq, ko'p joy = kulrang
+const taxiMarker = (free: number) => {
+    const badgeColor = free === 0 ? "#16A34A" : free <= 2 ? "#F97316" : "#64748B";
+    const badgeText = free === 0 ? "✓" : String(free);
+    return toDataUri(`
+      <svg width="48" height="52" viewBox="0 0 48 52" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="30" r="17" fill="#ffcc00" stroke="white" stroke-width="3"/>
+        <text x="24" y="36" font-size="17" text-anchor="middle">🚕</text>
+        <circle cx="38" cy="12" r="11" fill="${badgeColor}" stroke="white" stroke-width="2.5"/>
+        <text x="38" y="16.5" font-size="12" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial">${badgeText}</text>
+      </svg>
+    `);
+};
 
 const CURRENT_LOCATION_MARKER = toDataUri(`
   <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -83,7 +94,11 @@ export default function TaxisViewMap() {
         const phone = d.phone
             ? `<br/>📞 <a href="tel:${d.phone}">${d.phone}</a>`
             : "";
-        return `🚕 <b>${d.firstName}</b><br/>${rating}${phone}`;
+        const seats =
+            d.seatsFree === 0
+                ? "🟢 <b>To'ldi — tez ketadi!</b>"
+                : `🪑 <b>${d.seatsFree} ta joy bo'sh</b> (${d.seatsFilled}/${d.seatsTotal} band)`;
+        return `🚕 <b>${d.firstName}</b><br/>${seats}<br/>${rating}${phone}`;
     };
 
     return (
@@ -95,8 +110,22 @@ export default function TaxisViewMap() {
                     <div className="bg-white/95 backdrop-blur rounded-2xl shadow-lg p-3 border border-gray-100">
                         <p className="text-sm font-bold text-slate-700">🚕 Joriy faol taksilar</p>
                         <p className="text-[11px] text-slate-400 font-medium">
-                            Markerga bossangiz haydovchining bahosi va telefoni chiqadi
+                            Belgidagi raqam — bo'sh joy soni. Taksiga bosib telefon qiling.
                         </p>
+                        <div className="flex items-center gap-3 mt-2 text-[10px] font-bold">
+                            <span className="flex items-center gap-1">
+                                <span className="w-3.5 h-3.5 rounded-full bg-green-600 text-white flex items-center justify-center text-[8px]">✓</span>
+                                To'ldi (tez ketadi)
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <span className="w-3.5 h-3.5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[8px]">1</span>
+                                Kam joy
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <span className="w-3.5 h-3.5 rounded-full bg-slate-500 text-white flex items-center justify-center text-[8px]">4</span>
+                                Bo'sh
+                            </span>
+                        </div>
                     </div>
                     <div className="flex justify-center">
                         <div className="bg-white/90 backdrop-blur px-4 py-1.5 rounded-full shadow-md border border-slate-200 flex items-center gap-2">
@@ -130,25 +159,23 @@ export default function TaxisViewMap() {
                         />
                     )}
 
-                    {/* Faol taksilar */}
-                    <Clusterer options={{ preset: "islands#invertedYellowClusterIcons" }}>
-                        {drivers.map((d) => (
-                            <Placemark
-                                key={d.id}
-                                geometry={[d.lastLat, d.lastLng]}
-                                properties={{
-                                    hintContent: `🚕 ${d.firstName}`,
-                                    balloonContent: balloonFor(d),
-                                }}
-                                options={{
-                                    iconLayout: "default#image",
-                                    iconImageHref: TAXI_MARKER,
-                                    iconImageSize: [44, 44],
-                                    iconImageOffset: [-22, -22],
-                                }}
-                            />
-                        ))}
-                    </Clusterer>
+                    {/* Faol taksilar — badge'da bo'sh joy soni */}
+                    {drivers.map((d) => (
+                        <Placemark
+                            key={d.id}
+                            geometry={[d.lastLat, d.lastLng]}
+                            properties={{
+                                hintContent: `🚕 ${d.firstName} · ${d.seatsFree === 0 ? "to'ldi" : d.seatsFree + " joy"}`,
+                                balloonContent: balloonFor(d),
+                            }}
+                            options={{
+                                iconLayout: "default#image",
+                                iconImageHref: taxiMarker(d.seatsFree),
+                                iconImageSize: [48, 52],
+                                iconImageOffset: [-24, -47],
+                            }}
+                        />
+                    ))}
 
                     <ZoomControl options={{ float: "right" } as any} />
                 </Map>

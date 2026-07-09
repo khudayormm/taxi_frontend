@@ -10,6 +10,8 @@ export interface TUser {
     profilePic: string | null;
     phone: string;
     role: UserRole;
+    seatsTotal: number;
+    seatsFilled: number;
     createdAt: string;   // ISO date
     updatedAt: string;   // ISO date
     lastAccess: string;  // ISO date

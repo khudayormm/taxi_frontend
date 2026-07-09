@@ -20,7 +20,7 @@ export default function DriverPage({ user }: Props) {
 
     return (
         <main className="h-screen w-full">
-            <Map />
+            <Map user={user} />
         </main>
     );
 }
