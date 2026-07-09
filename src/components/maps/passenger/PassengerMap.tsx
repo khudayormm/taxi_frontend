@@ -55,11 +55,13 @@ const TAXI_MARKER = toDataUri(`
   </svg>
 `);
 
+// Borish joyi markeri: pasti tayoq, tepasi qizil dumaloq
 const DESTINATION_MARKER = toDataUri(`
-  <svg width="40" height="48" viewBox="0 0 40 48" xmlns="http://www.w3.org/2000/svg">
-    <defs><filter id="pin-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/></filter></defs>
-    <path d="M20 2C9.506 2 1 10.506 1 21C1 34.5 20 46 20 46C20 46 39 34.5 39 21C39 10.506 30.494 2 20 2Z" fill="#EF4444" filter="url(#pin-shadow)"/>
-    <circle cx="20" cy="18" r="6" fill="white"/>
+  <svg width="48" height="64" viewBox="0 0 48 64" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="24" cy="60" rx="7" ry="3" fill="#000000" opacity="0.25"/>
+    <line x1="24" y1="60" x2="24" y2="26" stroke="#7F1D1D" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="24" cy="15" r="13" fill="#EF4444" stroke="white" stroke-width="3"/>
+    <circle cx="24" cy="15" r="5" fill="white"/>
   </svg>
 `);
 
@@ -118,6 +120,9 @@ export default function PassengerMap() {
     // Drag paytida eski joyga qaytarish uchun oxirgi pickup qiymati
     const pickupRef = useRef<[number, number] | null>(null);
     useEffect(() => { pickupRef.current = pickup; }, [pickup]);
+
+    const destinationRef = useRef<[number, number] | null>(null);
+    useEffect(() => { destinationRef.current = destination; }, [destination]);
 
     // 1. Dastur yonganda Public papkasidan geojson fayllarni o'qib olish
     useEffect(() => {
@@ -221,16 +226,15 @@ export default function PassengerMap() {
         }
     }, [urgenchGeoJSON, bagatGeoJSON, getLocation]);
 
-    // JO'NASH JOYI TASDIQLANGACH AVTOMATIK IKKINCHI SHAHARGA UCHISH
+    // JO'NASH JOYI TASDIQLANGACH: borish markeri default qarama-qarshi
+    // shahar markazida qo'yiladi va marshrut chiziladi
     useEffect(() => {
         if (pickup && pickupConfirmed && !destination && activeCity && mapRef.current) {
             const targetCenter = activeCity === "urganch" ? BOGOT_CENTER : URGANCH_CENTER;
-            setTimeout(() => {
-                mapRef.current.setCenter(targetCenter, 10, {
-                    duration: 1200,
-                    timingFunction: "ease-in-out"
-                });
-            }, 300);
+            setDestination(targetCenter);
+            if (ymapsRef.current) {
+                drawRoute(ymapsRef.current, mapRef.current, pickup, targetCenter);
+            }
         }
     }, [pickup, pickupConfirmed, destination, activeCity]);
 
@@ -277,6 +281,30 @@ export default function PassengerMap() {
         setActiveCity(city);
     };
 
+    // BORISH MARKERINI BOSIB TURIB SURGANDA (drag tugagach)
+    const onDestinationDragEnd = (e: any) => {
+        const coords = e.get("target").geometry.getCoordinates() as [number, number];
+        const destCity = detectCity(coords);
+
+        if (!destCity || destCity === activeCity) {
+            setLocationError(
+                !destCity
+                    ? "Borish manzili faqat Urganch yoki Bog'ot chegarasi ichida bo'lishi mumkin."
+                    : `❌ Siz allaqachon ${activeCity === 'urganch' ? "Urganch" : "Bog'ot"}dasiz. Narigi shaharni tanlang.`
+            );
+            if (destinationRef.current) {
+                e.get("target").geometry.setCoordinates(destinationRef.current);
+            }
+            return;
+        }
+
+        setLocationError(null);
+        setDestination(coords);
+        if (ymapsRef.current && mapRef.current && pickupRef.current) {
+            drawRoute(ymapsRef.current, mapRef.current, pickupRef.current, coords);
+        }
+    };
+
     // "✅ SHU YERGA BORAMAN" BOSILGANDA — jo'nash joyi tasdiqlanadi
     const confirmPickup = () => {
         if (!pickup) return;
@@ -299,8 +327,8 @@ export default function PassengerMap() {
             setPickup(coords);
             setActiveCity(city);
         }
-        // 2. Borish joyini tanlash
-        else if (!destination) {
+        // 2. Borish joyini tanlash / ko'chirish (xaritaga bosib ham ko'chirish mumkin)
+        else {
             const destCity = detectCity(coords);
 
             if (!destCity) {
@@ -392,7 +420,7 @@ export default function PassengerMap() {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Borish manzili</p>
-                                        <p className="text-sm font-bold text-slate-700 truncate">Manzil belgilandi ✅</p>
+                                        <p className="text-sm font-bold text-slate-700 truncate">Qizil markerni surib aniqlashtiring</p>
                                     </div>
                                     <button onClick={resetSelection} className="bg-red-50 hover:bg-red-100 p-1.5 rounded-full text-red-500 transition">
                                         <X size={16} />
@@ -540,11 +568,15 @@ export default function PassengerMap() {
                     {destination && (
                         <Placemark
                             geometry={destination}
+                            onDragEnd={onDestinationDragEnd}
                             options={{
                                 iconLayout: "default#image",
                                 iconImageHref: DESTINATION_MARKER,
-                                iconImageSize: [40, 48],
-                                iconImageOffset: [-20, -48],
+                                iconImageSize: [48, 64],
+                                // Tayoqning uchi (pastki markaz) nuqtaga qadaladi
+                                iconImageOffset: [-24, -62],
+                                draggable: true,
+                                zIndex: 110,
                             }}
                         />
                     )}
