@@ -364,7 +364,7 @@ export default function PassengerMap() {
 
                 {/* --- XARITA --- */}
                 <Map
-                    state={{ center: mapCenter, zoom: 10 }}
+                    state={{ center: mapCenter, zoom: 8 }}
                     width="100%"
                     height="100%"
                     modules={["multiRouter.MultiRoute", "coordSystem.geo"]}
