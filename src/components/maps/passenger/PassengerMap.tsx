@@ -29,21 +29,22 @@ const MAP_BOUNDS = [[40.5000, 59.0000], [42.5000, 62.5000],
 const toDataUri = (svg: string) =>
     `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 
+// Jo'nash (A) markeri: pasti tayoq, tepasi yashil dumaloq
 const PICKUP_MARKER = toDataUri(`
-  <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-    <defs><filter id="pulse-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/></filter></defs>
-    <circle cx="40" cy="40" r="30" fill="#3B82F6" opacity="0"><animate attributeName="r" from="14" to="34" dur="1.5s" begin="0s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.5" to="0" dur="1.5s" begin="0s" repeatCount="indefinite"/></circle>
-    <circle cx="40" cy="40" r="14" fill="white" filter="url(#pulse-shadow)" />
-    <circle cx="40" cy="40" r="7" fill="#1D4ED8" />
+  <svg width="48" height="64" viewBox="0 0 48 64" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="24" cy="60" rx="7" ry="3" fill="#000000" opacity="0.25"/>
+    <line x1="24" y1="60" x2="24" y2="26" stroke="#14532D" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="24" cy="15" r="13" fill="#22C55E" stroke="white" stroke-width="3"/>
+    <text x="24" y="20" font-size="13" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial">A</text>
   </svg>
 `);
 
-// Joriy GPS joylashuv markeri (yashil nuqta) — jo'nash markeridan alohida turadi
+// Joriy GPS joylashuv — kichik ko'k nuqta (eng past darajali belgi)
 const CURRENT_LOCATION_MARKER = toDataUri(`
-  <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="24" cy="24" r="20" fill="#22C55E" opacity="0.2"/>
-    <circle cx="24" cy="24" r="10" fill="white"/>
-    <circle cx="24" cy="24" r="7" fill="#16A34A"/>
+  <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="11" fill="#3B82F6" opacity="0.25"/>
+    <circle cx="12" cy="12" r="7" fill="white"/>
+    <circle cx="12" cy="12" r="5" fill="#2563EB"/>
   </svg>
 `);
 
@@ -61,7 +62,7 @@ const DESTINATION_MARKER = toDataUri(`
     <ellipse cx="24" cy="60" rx="7" ry="3" fill="#000000" opacity="0.25"/>
     <line x1="24" y1="60" x2="24" y2="26" stroke="#7F1D1D" stroke-width="4" stroke-linecap="round"/>
     <circle cx="24" cy="15" r="13" fill="#EF4444" stroke="white" stroke-width="3"/>
-    <circle cx="24" cy="15" r="5" fill="white"/>
+    <text x="24" y="20" font-size="13" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial">B</text>
   </svg>
 `);
 
@@ -123,6 +124,13 @@ export default function PassengerMap() {
 
     const destinationRef = useRef<[number, number] | null>(null);
     useEffect(() => { destinationRef.current = destination; }, [destination]);
+
+    // Xatolik xabari 4 sekunddan keyin o'zi yo'qoladi (UI toza tursin)
+    useEffect(() => {
+        if (!locationError) return;
+        const t = setTimeout(() => setLocationError(null), 4000);
+        return () => clearTimeout(t);
+    }, [locationError]);
 
     // 1. Dastur yonganda Public papkasidan geojson fayllarni o'qib olish
     useEffect(() => {
@@ -404,7 +412,7 @@ export default function PassengerMap() {
                                         Jo'nash joyi
                                     </p>
                                     <p className="text-sm font-bold text-slate-700">
-                                        Markerni bosib turib suring, so'ng «Shu yerga boraman»ni bosing
+                                        Yashil (A) markerni surib to'g'rilang, so'ng tasdiqlang
                                     </p>
                                 </div>
                             ) : !destination ? (
@@ -420,7 +428,7 @@ export default function PassengerMap() {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Borish manzili</p>
-                                        <p className="text-sm font-bold text-slate-700 truncate">Qizil markerni surib aniqlashtiring</p>
+                                        <p className="text-sm font-bold text-slate-700 truncate">Qizil (B) markerni surib aniqlashtiring</p>
                                     </div>
                                     <button onClick={resetSelection} className="bg-red-50 hover:bg-red-100 p-1.5 rounded-full text-red-500 transition">
                                         <X size={16} />
@@ -437,15 +445,17 @@ export default function PassengerMap() {
                         </div>
                     )}
 
-                    {/* Faol taksilar soni */}
-                    <div className="flex justify-center pointer-events-none">
-                        <div className="bg-white/90 backdrop-blur px-4 py-1.5 rounded-full shadow-md border border-slate-200 flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${drivers.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`} />
-                            <p className="text-[10px] font-black text-slate-700 uppercase">
-                                {drivers.length} ta taksi faol
-                            </p>
+                    {/* Faol taksilar soni (buyurtma paneli ochiq bo'lmaganda) */}
+                    {!destination && (
+                        <div className="flex justify-center pointer-events-none">
+                            <div className="bg-white/90 backdrop-blur px-4 py-1.5 rounded-full shadow-md border border-slate-200 flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${drivers.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`} />
+                                <p className="text-[10px] font-black text-slate-700 uppercase">
+                                    {drivers.length} ta taksi faol
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* JO'NASH JOYINI O'ZGARTIRISH TUGMASI (tasdiqlangandan keyin) */}
@@ -534,7 +544,7 @@ export default function PassengerMap() {
                         ))}
                     </Clusterer>
 
-                    {/* JORIY JOYLASHUV MARKERI (doim ko'rinadi) */}
+                    {/* JORIY JOYLASHUV — kichik ko'k nuqta (doim ko'rinadi) */}
                     {currentLocation && (
                         <Placemark
                             geometry={currentLocation}
@@ -542,22 +552,25 @@ export default function PassengerMap() {
                             options={{
                                 iconLayout: "default#image",
                                 iconImageHref: CURRENT_LOCATION_MARKER,
-                                iconImageSize: [48, 48],
-                                iconImageOffset: [-24, -24],
-                                zIndex: 90,
+                                iconImageSize: [24, 24],
+                                iconImageOffset: [-12, -12],
+                                zIndex: 80,
                             }}
                         />
                     )}
 
+                    {/* JO'NASH (A) MARKERI */}
                     {pickup && (
                         <Placemark
                             geometry={pickup}
                             onDragEnd={onPickupDragEnd}
+                            properties={{ hintContent: "Jo'nash joyi" }}
                             options={{
                                 iconLayout: "default#image",
                                 iconImageHref: PICKUP_MARKER,
-                                iconImageSize: [80, 80],
-                                iconImageOffset: [-40, -40],
+                                iconImageSize: [48, 64],
+                                // Tayoqning uchi (pastki markaz) nuqtaga qadaladi
+                                iconImageOffset: [-24, -62],
                                 // Tasdiqlanmaguncha bosib turib surish mumkin
                                 draggable: !pickupConfirmed,
                                 zIndex: 110,
@@ -565,10 +578,12 @@ export default function PassengerMap() {
                         />
                     )}
 
+                    {/* BORISH (B) MARKERI */}
                     {destination && (
                         <Placemark
                             geometry={destination}
                             onDragEnd={onDestinationDragEnd}
+                            properties={{ hintContent: "Borish joyi" }}
                             options={{
                                 iconLayout: "default#image",
                                 iconImageHref: DESTINATION_MARKER,
