@@ -7,8 +7,6 @@ import PassengerPage from '../pages/passenger'
 const PassengerLayout = ({ user }: { user: TUser }) => {
     return (
         <>
-            <p>YOLOVCHI LAYOUT</p>
-
             <PassengerPage user={user} />
         </>
     )

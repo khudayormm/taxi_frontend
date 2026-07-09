@@ -1,22 +1,11 @@
-import type { NavItem } from "@/types/nav";
-
 export const SITE_INFO = {
-  name: "React Wheel Picker",
-  url: process.env.APP_URL || "https://react-wheel-picker.chanhdai.com",
-  metaImage: "/images/rwp-meta-image.jpeg?v=3",
+  name: "Qatnov Taksi",
+  url: process.env.APP_URL || "https://taxi-frontend-tn66.vercel.app",
+  description:
+    "Urganch ↔ Bog'ot qatnov taksi — Telegram Web App xaritasi orqali haydovchi va yo'lovchilarni toping.",
 };
-
-export const SOURCE_CODE_GITHUB_URL =
-  "https://github.com/ncdai/react-wheel-picker";
 
 export const META_THEME_COLORS = {
   light: "#ffffff",
   dark: "#09090b",
 };
-
-export const NAV_ITEMS: NavItem[] = [
-  {
-    title: "Home",
-    href: "/",
-  },
-];

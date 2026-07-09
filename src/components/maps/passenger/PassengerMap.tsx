@@ -1,9 +1,18 @@
 "use client";
 
-import { YMaps, Map, Placemark, ZoomControl, Polygon } from "@pbe/react-yandex-maps";
+import { YMaps, Map, Placemark, ZoomControl, Polygon, Clusterer } from "@pbe/react-yandex-maps";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowLeft, Navigation, ChevronRight, AlertTriangle, MapPin, X, Clock, Route } from "lucide-react";
 import * as turf from "@turf/turf";
+import api from "@/lib/api/api-config/api";
+
+interface Driver {
+    id: number;
+    firstName: string;
+    phone: string | null;
+    lastLat: number;
+    lastLng: number;
+}
 
 // --- XORAZM UCHUN KOORDINATALAR ---
 const URGANCH_CENTER: [number, number] = [41.5502, 60.6316];
@@ -20,6 +29,14 @@ const PICKUP_MARKER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
     <circle cx="40" cy="40" r="30" fill="#3B82F6" opacity="0"><animate attributeName="r" from="14" to="34" dur="1.5s" begin="0s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.5" to="0" dur="1.5s" begin="0s" repeatCount="indefinite"/></circle>
     <circle cx="40" cy="40" r="14" fill="white" filter="url(#pulse-shadow)" />
     <circle cx="40" cy="40" r="7" fill="#1D4ED8" />
+  </svg>
+`)}`;
+
+const TAXI_MARKER = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+  <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+    <defs><filter id="taxi-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.35"/></filter></defs>
+    <circle cx="22" cy="22" r="16" fill="#ffcc00" stroke="white" stroke-width="3" filter="url(#taxi-shadow)"/>
+    <text x="22" y="28" font-size="16" text-anchor="middle">🚕</text>
   </svg>
 `)}`;
 
@@ -71,6 +88,7 @@ export default function PassengerMap() {
     const [isMapLoaded, setIsMapLoaded] = useState(false);
     const [isLocating, setIsLocating] = useState(true);
     const [locationError, setLocationError] = useState<string | null>(null);
+    const [drivers, setDrivers] = useState<Driver[]>([]);
 
     // GeoJSON fayllarini saqlash uchun
     const [urgenchGeoJSON, setUrgenchGeoJSON] = useState<any>(null);
@@ -94,6 +112,33 @@ export default function PassengerMap() {
         });
     }, []);
 
+    // Faol haydovchilarni (taksilarni) har 15 sekundda yangilab turish
+    useEffect(() => {
+        const fetchActiveDrivers = async () => {
+            try {
+                const response = await api.post('/user/active-drivers');
+                if (response?.data?.success) {
+                    setDrivers(response.data.data);
+                }
+            } catch (error) {
+                console.error("Haydovchilarni olishda xato:", error);
+            }
+        };
+
+        fetchActiveDrivers();
+        const interval = setInterval(fetchActiveDrivers, 15000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Yo'lovchi lokatsiyasini backendga yuborish (haydovchilarga ko'rinishi uchun)
+    const sendLocation = async (lat: number, lng: number) => {
+        try {
+            await api.post('/user/location', { lat, lng });
+        } catch (error) {
+            console.error("Lokatsiya yuborishda xato:", error);
+        }
+    };
+
     // Nuqta qaysi shaharda ekanligini aniqlash (Urganch yoki Bog'ot)
     const detectCity = useCallback((coords: [number, number]): "urganch" | "bogot" | null => {
         if (isPointInGeoJSON(coords[0], coords[1], urgenchGeoJSON)) return "urganch";
@@ -116,6 +161,7 @@ export default function PassengerMap() {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+                    sendLocation(coords[0], coords[1]);
                     const city = detectCity(coords);
 
                     if (!city) {
@@ -292,6 +338,16 @@ export default function PassengerMap() {
                             <p className="text-xs font-medium text-red-700 leading-snug">{locationError}</p>
                         </div>
                     )}
+
+                    {/* Faol taksilar soni */}
+                    <div className="flex justify-center pointer-events-none">
+                        <div className="bg-white/90 backdrop-blur px-4 py-1.5 rounded-full shadow-md border border-slate-200 flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${drivers.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`} />
+                            <p className="text-[10px] font-black text-slate-700 uppercase">
+                                {drivers.length} ta taksi faol
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* JO'NASH JOYINI O'ZGARTIRISH TUGMASI */}
@@ -347,6 +403,26 @@ export default function PassengerMap() {
                             }}
                         />
                     )}
+
+                    {/* FAOL TAKSILAR MARKERLARI */}
+                    <Clusterer options={{ preset: "islands#invertedYellowClusterIcons" }}>
+                        {drivers.map((d) => (
+                            <Placemark
+                                key={d.id}
+                                geometry={[d.lastLat, d.lastLng]}
+                                properties={{
+                                    hintContent: `🚕 ${d.firstName}`,
+                                    balloonContent: `🚕 <b>${d.firstName}</b>${d.phone ? `<br/>📞 <a href="tel:${d.phone}">${d.phone}</a>` : ""}`,
+                                }}
+                                options={{
+                                    iconLayout: "default#image",
+                                    iconImageHref: TAXI_MARKER,
+                                    iconImageSize: [44, 44],
+                                    iconImageOffset: [-22, -22],
+                                }}
+                            />
+                        ))}
+                    </Clusterer>
 
                     {pickup && (
                         <Placemark

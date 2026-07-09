@@ -35,10 +35,27 @@ export default function DriverMap() {
 
     useEffect(() => { startTracking(); }, [startTracking]);
 
-    // 2. Yo'lovchilarni har 15 sekundda yangilab turish
+    // 2. Haydovchi lokatsiyasini backendga yuborib turish (yo'lovchilarga ko'rinishi uchun)
+    const sendLocation = async () => {
+        try {
+            const [lat, lng] = locRef.current;
+            await api.post('/user/location', { lat, lng });
+        } catch (error) {
+            console.error("Lokatsiya yuborishda xato:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (!isLocationReady) return;
+        sendLocation();
+        const interval = setInterval(sendLocation, 30000);
+        return () => clearInterval(interval);
+    }, [isLocationReady]);
+
+    // 3. Yo'lovchilarni har 15 sekundda yangilab turish
     const fetchActivePassengers = async () => {
         try {
-            const response = await api.post('/passenger/active-passengers');
+            const response = await api.post('/user/active-passengers');
             if (response?.data?.success) {
                 setPassengers(response.data.data);
             }
