@@ -96,6 +96,8 @@ export default function PassengerMap() {
     const [mapCenter, setMapCenter] = useState<[number, number]>([41.4522, 60.7238]);
     const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
     const [pickup, setPickup] = useState<[number, number] | null>(null);
+    // Jo'nash joyi tasdiqlanganmi ("✅ Shu yerga boraman" bosilganmi)
+    const [pickupConfirmed, setPickupConfirmed] = useState(false);
     const [destination, setDestination] = useState<[number, number] | null>(null);
     const [price, setPrice] = useState(15000);
     const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null);
@@ -113,6 +115,9 @@ export default function PassengerMap() {
     const mapRef = useRef<any>(null);
     const ymapsRef = useRef<any>(null);
     const routeRef = useRef<any>(null);
+    // Drag paytida eski joyga qaytarish uchun oxirgi pickup qiymati
+    const pickupRef = useRef<[number, number] | null>(null);
+    useEffect(() => { pickupRef.current = pickup; }, [pickup]);
 
     // 1. Dastur yonganda Public papkasidan geojson fayllarni o'qib olish
     useEffect(() => {
@@ -191,7 +196,10 @@ export default function PassengerMap() {
 
                     setPickup(coords);
                     setActiveCity(city);
+                    setPickupConfirmed(false);
                     setIsLocating(false);
+                    // Markerni bemalol surish mumkin bo'lishi uchun yaqinlashtiramiz
+                    mapRef.current?.setCenter(coords, 14, { duration: 800 });
                 },
                 (err) => {
                     console.error("Geolokatsiya xatosi:", err);
@@ -213,9 +221,9 @@ export default function PassengerMap() {
         }
     }, [urgenchGeoJSON, bagatGeoJSON, getLocation]);
 
-    // JO'NASH JOYI BELGILANSA AVTOMATIK IKKINCHI SHAHARGA UCHISH
+    // JO'NASH JOYI TASDIQLANGACH AVTOMATIK IKKINCHI SHAHARGA UCHISH
     useEffect(() => {
-        if (pickup && !destination && activeCity && mapRef.current) {
+        if (pickup && pickupConfirmed && !destination && activeCity && mapRef.current) {
             const targetCenter = activeCity === "urganch" ? BOGOT_CENTER : URGANCH_CENTER;
             setTimeout(() => {
                 mapRef.current.setCenter(targetCenter, 10, {
@@ -224,7 +232,7 @@ export default function PassengerMap() {
                 });
             }, 300);
         }
-    }, [pickup, destination, activeCity]);
+    }, [pickup, pickupConfirmed, destination, activeCity]);
 
     // Marshrut chizish
     const drawRoute = (ymaps: any, map: any, start: [number, number], end: [number, number]) => {
@@ -250,12 +258,38 @@ export default function PassengerMap() {
         map.geoObjects.add(multiRoute);
     };
 
+    // JO'NASH MARKERINI BOSIB TURIB SURGANDA (drag tugagach)
+    const onPickupDragEnd = (e: any) => {
+        const coords = e.get("target").geometry.getCoordinates() as [number, number];
+        const city = detectCity(coords);
+
+        if (!city) {
+            setLocationError("Jo'nash joyi faqat Urganch yoki Bog'ot chegarasi ichida bo'lishi mumkin.");
+            // Chegaradan tashqariga surilsa markerni eski joyiga qaytaramiz
+            if (pickupRef.current) {
+                e.get("target").geometry.setCoordinates(pickupRef.current);
+            }
+            return;
+        }
+
+        setLocationError(null);
+        setPickup(coords);
+        setActiveCity(city);
+    };
+
+    // "✅ SHU YERGA BORAMAN" BOSILGANDA — jo'nash joyi tasdiqlanadi
+    const confirmPickup = () => {
+        if (!pickup) return;
+        setLocationError(null);
+        setPickupConfirmed(true);
+    };
+
     // XARITAGA BOSILGANDA
     const onMapClick = (e: any) => {
         const coords = e.get("coords");
 
-        // 1. Jo'nash joyini tanlash
-        if (!pickup) {
+        // 1. Jo'nash joyini tanlash / tasdiqlashdan oldin o'zgartirish
+        if (!pickup || !pickupConfirmed) {
             const city = detectCity(coords);
             if (!city) {
                 setLocationError("Iltimos, jo'nash uchun Urganch yoki Bog'ot hududini tanlang.");
@@ -301,11 +335,19 @@ export default function PassengerMap() {
         }
     };
 
-    const clearPickup = () => {
-        setPickup(null);
-        setActiveCity(null);
+    // Jo'nash joyini o'zgartirish rejimiga qaytish (marker qoladi, yana surish mumkin)
+    const editPickup = () => {
+        setPickupConfirmed(false);
+        setDestination(null);
+        setRouteInfo(null);
         setLocationError(null);
-        resetSelection();
+        if (routeRef.current && mapRef.current) {
+            mapRef.current.geoObjects.remove(routeRef.current);
+            routeRef.current = null;
+        }
+        if (pickup && mapRef.current) {
+            mapRef.current.setCenter(pickup, 14, { duration: 800 });
+        }
     };
 
     return (
@@ -328,6 +370,15 @@ export default function PassengerMap() {
                         <div className="flex-1">
                             {!pickup ? (
                                 <p className="text-sm font-bold text-slate-700">📍 Jo'nash joyini tanlang (Urganch yoki Bog'ot)</p>
+                            ) : !pickupConfirmed ? (
+                                <div>
+                                    <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">
+                                        Jo'nash joyi
+                                    </p>
+                                    <p className="text-sm font-bold text-slate-700">
+                                        Markerni bosib turib suring, so'ng «Shu yerga boraman»ni bosing
+                                    </p>
+                                </div>
                             ) : !destination ? (
                                 <div>
                                     <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">
@@ -369,14 +420,26 @@ export default function PassengerMap() {
                     </div>
                 </div>
 
-                {/* JO'NASH JOYINI O'ZGARTIRISH TUGMASI */}
-                {pickup && !destination && (
+                {/* JO'NASH JOYINI O'ZGARTIRISH TUGMASI (tasdiqlangandan keyin) */}
+                {pickup && pickupConfirmed && !destination && (
                     <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 animate-in fade-in zoom-in duration-300">
                         <button
-                            onClick={clearPickup}
+                            onClick={editPickup}
                             className="bg-gray-800/90 backdrop-blur text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 hover:bg-gray-900 transition-colors"
                         >
                             Jo'nash joyini o'zgartirish <X size={14} />
+                        </button>
+                    </div>
+                )}
+
+                {/* "SHU YERGA BORAMAN" TASDIQLASH TUGMASI (marker surilayotgan bosqichda) */}
+                {pickup && !pickupConfirmed && (
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <button
+                            onClick={confirmPickup}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-black px-8 py-4 rounded-2xl shadow-2xl shadow-blue-300/50 active:scale-95 transition-all flex items-center gap-2 text-sm tracking-tight"
+                        >
+                            ✅ Shu yerga boraman
                         </button>
                     </div>
                 )}
@@ -461,11 +524,15 @@ export default function PassengerMap() {
                     {pickup && (
                         <Placemark
                             geometry={pickup}
+                            onDragEnd={onPickupDragEnd}
                             options={{
                                 iconLayout: "default#image",
                                 iconImageHref: PICKUP_MARKER,
                                 iconImageSize: [80, 80],
                                 iconImageOffset: [-40, -40],
+                                // Tasdiqlanmaguncha bosib turib surish mumkin
+                                draggable: !pickupConfirmed,
+                                zIndex: 110,
                             }}
                         />
                     )}
