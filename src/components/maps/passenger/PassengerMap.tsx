@@ -199,7 +199,7 @@ export default function PassengerMap() {
         if (pickup && !destination && activeCity && mapRef.current) {
             const targetCenter = activeCity === "urganch" ? BOGOT_CENTER : URGANCH_CENTER;
             setTimeout(() => {
-                mapRef.current.setCenter(targetCenter, 12, {
+                mapRef.current.setCenter(targetCenter, 10, {
                     duration: 1200,
                     timingFunction: "ease-in-out"
                 });
@@ -278,7 +278,7 @@ export default function PassengerMap() {
 
         if (pickup && activeCity && mapRef.current) {
             const targetCenter = activeCity === "urganch" ? BOGOT_CENTER : URGANCH_CENTER;
-            mapRef.current.setCenter(targetCenter, 12, { duration: 800 });
+            mapRef.current.setCenter(targetCenter, 10, { duration: 800 });
         }
     };
 
@@ -364,7 +364,7 @@ export default function PassengerMap() {
 
                 {/* --- XARITA --- */}
                 <Map
-                    state={{ center: mapCenter, zoom: 11 }}
+                    state={{ center: mapCenter, zoom: 10 }}
                     width="100%"
                     height="100%"
                     modules={["multiRouter.MultiRoute", "coordSystem.geo"]}
