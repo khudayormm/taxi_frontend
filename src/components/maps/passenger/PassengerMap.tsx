@@ -209,12 +209,13 @@ export default function PassengerMap() {
                         return;
                     }
 
+                    // A nuqta avtomatik joriy joylashuvga qo'yiladi va tasdiqlanadi —
+                    // to'g'ridan-to'g'ri borish manzilini tanlashga o'tiladi.
+                    // Keyin xohlasa "Jo'nash joyini o'zgartirish" bilan suradi.
                     setPickup(coords);
                     setActiveCity(city);
-                    setPickupConfirmed(false);
+                    setPickupConfirmed(true);
                     setIsLocating(false);
-                    // Markerni bemalol surish mumkin bo'lishi uchun yaqinlashtiramiz
-                    mapRef.current?.setCenter(coords, 14, { duration: 800 });
                 },
                 (err) => {
                     console.error("Geolokatsiya xatosi:", err);
