@@ -238,16 +238,16 @@ export default function PassengerMap() {
     }, [urgenchGeoJSON, bagatGeoJSON, getLocation]);
 
     // JO'NASH JOYI TASDIQLANGACH: borish markeri default qarama-qarshi
-    // shahar markazida qo'yiladi va marshrut chiziladi
+    // shahar markazida qo'yiladi va marshrut chiziladi.
+    // isMapLoaded shart: GPS xaritadan oldin aniqlansa, effekt xarita
+    // yuklangach qayta ishga tushishi kerak
     useEffect(() => {
-        if (pickup && pickupConfirmed && !destination && activeCity && mapRef.current) {
+        if (pickup && pickupConfirmed && !destination && activeCity && isMapLoaded && mapRef.current && ymapsRef.current) {
             const targetCenter = activeCity === "urganch" ? BOGOT_CENTER : URGANCH_CENTER;
             setDestination(targetCenter);
-            if (ymapsRef.current) {
-                drawRoute(ymapsRef.current, mapRef.current, pickup, targetCenter);
-            }
+            drawRoute(ymapsRef.current, mapRef.current, pickup, targetCenter);
         }
-    }, [pickup, pickupConfirmed, destination, activeCity]);
+    }, [pickup, pickupConfirmed, destination, activeCity, isMapLoaded]);
 
     // Marshrut chizish
     const drawRoute = (ymaps: any, map: any, start: [number, number], end: [number, number]) => {
