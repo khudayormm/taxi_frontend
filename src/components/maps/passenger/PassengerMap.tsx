@@ -12,6 +12,8 @@ interface Driver {
     phone: string | null;
     lastLat: number;
     lastLng: number;
+    rating: number | null;
+    ratingCount: number;
 }
 
 // --- XORAZM UCHUN KOORDINATALAR ---
@@ -532,7 +534,7 @@ export default function PassengerMap() {
                                 geometry={[d.lastLat, d.lastLng]}
                                 properties={{
                                     hintContent: `🚕 ${d.firstName}`,
-                                    balloonContent: `🚕 <b>${d.firstName}</b>${d.phone ? `<br/>📞 <a href="tel:${d.phone}">${d.phone}</a>` : ""}`,
+                                    balloonContent: `🚕 <b>${d.firstName}</b><br/>${d.rating ? `⭐ ${d.rating} (${d.ratingCount} baho)` : "⭐ Hali baholanmagan"}${d.phone ? `<br/>📞 <a href="tel:${d.phone}">${d.phone}</a>` : ""}`,
                                 }}
                                 options={{
                                     iconLayout: "default#image",
