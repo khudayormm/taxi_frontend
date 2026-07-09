@@ -38,6 +38,15 @@ const PICKUP_MARKER = toDataUri(`
   </svg>
 `);
 
+// Joriy GPS joylashuv markeri (yashil nuqta) — jo'nash markeridan alohida turadi
+const CURRENT_LOCATION_MARKER = toDataUri(`
+  <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="24" cy="24" r="20" fill="#22C55E" opacity="0.2"/>
+    <circle cx="24" cy="24" r="10" fill="white"/>
+    <circle cx="24" cy="24" r="7" fill="#16A34A"/>
+  </svg>
+`);
+
 const TAXI_MARKER = toDataUri(`
   <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
     <defs><filter id="taxi-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.35"/></filter></defs>
@@ -85,6 +94,7 @@ const extractPolygonCoords = (geojson: any) => {
 
 export default function PassengerMap() {
     const [mapCenter, setMapCenter] = useState<[number, number]>([41.4522, 60.7238]);
+    const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
     const [pickup, setPickup] = useState<[number, number] | null>(null);
     const [destination, setDestination] = useState<[number, number] | null>(null);
     const [price, setPrice] = useState(15000);
@@ -167,9 +177,12 @@ export default function PassengerMap() {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+                    // Joriy joylashuv markeri har doim GPS nuqtada turadi
+                    setCurrentLocation(coords);
                     sendLocation(coords[0], coords[1]);
                     const city = detectCity(coords);
 
+                    // Jo'nash markeri faqat chegara (Urganch/Bog'ot) ichida qo'yiladi
                     if (!city) {
                         setLocationError("Siz Urganch yoki Bog'ot hududida emassiz. Xaritadan o'zingiz tanlang.");
                         setIsLocating(false);
@@ -429,6 +442,21 @@ export default function PassengerMap() {
                             />
                         ))}
                     </Clusterer>
+
+                    {/* JORIY JOYLASHUV MARKERI (doim ko'rinadi) */}
+                    {currentLocation && (
+                        <Placemark
+                            geometry={currentLocation}
+                            properties={{ hintContent: "Siz shu yerdasiz" }}
+                            options={{
+                                iconLayout: "default#image",
+                                iconImageHref: CURRENT_LOCATION_MARKER,
+                                iconImageSize: [48, 48],
+                                iconImageOffset: [-24, -24],
+                                zIndex: 90,
+                            }}
+                        />
+                    )}
 
                     {pickup && (
                         <Placemark
